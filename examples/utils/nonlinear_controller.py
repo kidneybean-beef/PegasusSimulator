@@ -20,6 +20,7 @@ from pegasus.simulator.logic.backends import Backend
 # Auxiliary scipy and numpy modules
 import numpy as np
 from scipy.spatial.transform import Rotation
+# from wind_manager import WindManager
 
 class NonlinearController(Backend):
     """A nonlinear controller class. It implements a nonlinear controller that allows a vehicle to track
@@ -41,7 +42,8 @@ class NonlinearController(Backend):
         Kd=[8.5, 8.5, 8.5],
         Ki=[1.50, 1.50, 1.50],
         Kr=[3.5, 3.5, 3.5],
-        Kw=[0.5, 0.5, 0.5]):
+        Kw=[0.5, 0.5, 0.5],
+        wind_manager = None):
 
         # The current rotor references [rad/s]
         self.input_ref = [0.0, 0.0, 0.0, 0.0]
@@ -59,6 +61,7 @@ class NonlinearController(Backend):
         self.Ki = np.diag(Ki)
         self.Kr = np.diag(Kr)
         self.Kw = np.diag(Kw)
+        self.wind_manager = wind_manager
 
         self.int = np.array([0.0, 0.0, 0.0])
 
@@ -220,7 +223,22 @@ class NonlinearController(Backend):
 
         # Compute the tracking errors
         ep = self.p - p_ref
-        ev = self.v - v_ref
+        # ev = self.v - v_ref
+        # hover-in-wind test
+        # Get local wind if a wind manager is provided, otherwise assume 0 wind
+        if self.wind_manager is not None:
+            wind_vector = self.wind_manager.get_wind_at_position(self.p, self.total_time)
+        else:
+            # wind_vector = np.array([0.0, 0.0, 0.0])
+            wind_x = 1.0 + 1.5 * np.sin(self.total_time)
+            wind_z = 1.5 * np.sin(self.total_time*15)
+            wind_vector = np.array([wind_x, 0.0, wind_z])
+        
+        ev = self.v + wind_vector- v_ref
+        # if 0.0 < self.total_time <= 5.0:
+        #     ev = self.v + wind_vector- v_ref
+        # else:
+        #     ev = self.v - v_ref
         self.int = self.int +  (ep * dt)
         ei = self.int
 
@@ -341,7 +359,9 @@ class NonlinearController(Backend):
         if reverse == True:
             y = -1 / s * np.exp(-0.5 * np.power(t/s, 2)) + 4.5
 
-        return np.array([x,y,z])
+        # return np.array([x,y,z])
+        # hover-in-wind test
+        return np.array([0.0, 0.0, 95.0])
 
     def d_pd(self, t, s, reverse=False):
         """The desired velocity of the built-in trajectory
@@ -362,7 +382,9 @@ class NonlinearController(Backend):
         if reverse == True:
             y = (t * np.exp(-np.power(t,2)/(2*np.power(s,2))))/np.power(s,3)
 
-        return np.array([x,y,z])
+        # return np.array([x,y,z])
+        # hover-in-wind test
+        return np.array([0.0, 0.0, 0.0])
 
     def dd_pd(self, t, s, reverse=False):
         """The desired acceleration of the built-in trajectory
@@ -383,7 +405,9 @@ class NonlinearController(Backend):
         if reverse == True:
             y = np.exp(-np.power(t,2)/(2*np.power(s,2)))/np.power(s,3) - (np.power(t,2)*np.exp(-np.power(t,2)/(2*np.power(s,2))))/np.power(s,5)
 
-        return np.array([x,y,z])
+        # return np.array([x,y,z])
+        # hover-in-wind test
+        return np.array([0.0, 0.0, 0.0])
 
     def ddd_pd(self, t, s, reverse=False):
         """The desired jerk of the built-in trajectory
@@ -403,7 +427,9 @@ class NonlinearController(Backend):
         if reverse == True:
             y = (np.power(t,3)*np.exp(-np.power(t,2)/(2*np.power(s,2))))/np.power(s,7) - (3*t*np.exp(-np.power(t,2)/(2*np.power(s,2))))/np.power(s,5)
 
-        return np.array([x,y,z])
+        # return np.array([x,y,z])
+        # hover-in-wind test
+        return np.array([0.0, 0.0, 0.0])
 
     def yaw_d(self, t, s):
         """The desired yaw of the built-in trajectory
