@@ -61,6 +61,7 @@ class NonlinearController(Backend):
         self.Ki = np.diag(Ki)
         self.Kr = np.diag(Kr)
         self.Kw = np.diag(Kw)
+        self.Kff = 15.0
         self.wind_manager = wind_manager
 
         self.int = np.array([0.0, 0.0, 0.0])
@@ -234,7 +235,7 @@ class NonlinearController(Backend):
             wind_z = 1.5 * np.sin(self.total_time*15)
             wind_vector = np.array([wind_x, 0.0, wind_z])
         
-        ev = self.v + wind_vector- v_ref
+        ev = self.v - v_ref
         # if 0.0 < self.total_time <= 5.0:
         #     ev = self.v + wind_vector- v_ref
         # else:
@@ -243,7 +244,19 @@ class NonlinearController(Backend):
         ei = self.int
 
         # Compute F_des term
-        F_des = -(self.Kp @ ep) - (self.Kd @ ev) - (self.Ki @ ei) + np.array([0.0, 0.0, self.m * self.g]) + (self.m * a_ref)
+        # F_des_before = (-(self.Kp @ ep) - (self.Kd @ ev) - (self.Ki @ ei)
+        # + np.array([0.0, 0.0, self.m * self.g])
+        # + (self.m * a_ref))
+
+        F_des = (-(self.Kp @ ep) - (self.Kd @ ev) - (self.Ki @ ei)
+        + np.array([0.0, 0.0, self.m * self.g])
+        + (self.m * a_ref)
+        )
+        # + self.m * self.Kff * wind_vector)
+        # print("wind force: ", self.m * self.Kff * wind_vector)
+        # print("F_des_before: ", F_des_before)  
+        # print("F_des_after: ", F_des)
+        # print("wind_force: ", self.m * self.Kff * wind_vector)  
 
         # Get the current axis Z_B (given by the last column of the rotation matrix)
         Z_B = self.R.as_matrix()[:,2]
@@ -361,7 +374,9 @@ class NonlinearController(Backend):
 
         # return np.array([x,y,z])
         # hover-in-wind test
-        return np.array([0.0, 0.0, 95.0])
+        # return np.array([0.0, 0.0, 95.0])
+
+        return np.array(self.wind_manager.drone_hover_pos)
 
     def d_pd(self, t, s, reverse=False):
         """The desired velocity of the built-in trajectory
@@ -384,6 +399,7 @@ class NonlinearController(Backend):
 
         # return np.array([x,y,z])
         # hover-in-wind test
+        return -0.1 * (self.p - np.array(self.wind_manager.drone_hover_pos))
         return np.array([0.0, 0.0, 0.0])
 
     def dd_pd(self, t, s, reverse=False):
@@ -407,6 +423,7 @@ class NonlinearController(Backend):
 
         # return np.array([x,y,z])
         # hover-in-wind test
+        return 0.01 * (self.p - np.array(self.wind_manager.drone_hover_pos))
         return np.array([0.0, 0.0, 0.0])
 
     def ddd_pd(self, t, s, reverse=False):

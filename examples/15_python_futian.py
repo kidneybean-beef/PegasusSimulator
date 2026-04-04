@@ -61,41 +61,37 @@ class PegasusApp:
         self.pg._world = World(**self.pg._world_settings)
         self.world = self.pg.world
 
-        # Launch one of the worlds provided by NVIDIA
-        # self.pg.load_environment(SIMULATION_ENVIRONMENTS["Curved Gridroom"])
-        # self.pg.load_environment(SIMULATION_ENVIRONMENTS["Simple Room"])
+        # Futian environment
+        # self.pg.load_environment("/hdd/usd/Futian/bijiashan_park.usd")
+        # self.pg.load_environment("/hdd/usd/Futian/futian_buildings.usd")
+        # self.pg.load_environment("/hdd/usd/Futian/futian_highspeedstation.usd")
+        # self.pg.load_environment("/hdd/usd/Futian/futian_terrain_lianhuashan.usd")
+        # self.pg.load_environment("/hdd/usd/Futian/lianhuashan_landingplatform.usd")
+        # self.pg.load_environment("/hdd/usd/Futian/upperhills.usd")
+        add_reference_to_stage(usd_path="/hdd/usd/Futian/upperhills.usd", prim_path="/World/upperhills")
+        add_reference_to_stage(usd_path="/hdd/usd/Futian/lianhuashan_landingplatform.usd", prim_path="/World/lianhuashan_landingplatform")
+        add_reference_to_stage(usd_path="/hdd/usd/Futian/futian_terrain_lianhuashan.usd", prim_path="/World/futian_terrain_lianhuashan")
+        add_reference_to_stage(usd_path="/hdd/usd/Futian/futian_highspeedstation.usd", prim_path="/World/futian_highspeedstation")
+        add_reference_to_stage(usd_path="/hdd/usd/Futian/futian_buildings.usd", prim_path="/World/futian_buildings")
+        add_reference_to_stage(usd_path="/hdd/usd/Futian/bijiashan_park.usd", prim_path="/World/bijiashan_park")
 
-        # self.pg.load_environment("/hdd/usd/Assets/Scenes/Templates/Basic/clean_cloudy_sky_and_floor.usd") # axis not aligned 
-        # self.pg.load_environment("/hdd/usd/Assets/Scenes/Templates/Basic/display_pedestal.usd") # cannot open
-        # self.pg.load_environment("/hdd/usd/Assets/Scenes/Templates/Basic/display_riser.usd") # cannot open
-        # self.pg.load_environment("/hdd/usd/Assets/Scenes/Templates/Basic/white_void.usd") # axis not aligned 
-        # self.pg.load_environment("/hdd/usd/Assets/Scenes/Templates/Outdoor/Puddles.usd") # axis not aligned
-        # self.pg.load_environment("/hdd/usd/Assets/Scenes/Templates/LookDev/Decor_Concrete.usd")
-        # self.pg.load_environment("/hdd/usd/Assets/Scenes/Templates/Default/DefaultStage.usd")
-        # self.pg.load_environment("/hdd/usd/AECO_CityMassingDemo/World_CityMassingDemopack.usd")
-        # self.pg.load_environment("/hdd/usd/AECO_CityTowerDemo/World_CityTowerDemopack.usd")
-        self.pg.load_environment("/hdd/usd/AECO_CityDemo/World_CityDemopack.usd") # good but scale not correct
         # 
         #       
         # Setup Wind Visualization ---
         self.wind_manager = WindManager(wind_preset=0, drone_hover_pos=
                                         # [-23202.154296875, 35723.73046875, 2373.52001953125] # scene 0
-                                        [20218.47265625, 13713.60546875, 2573.372314453125] # scene 1
+                                        [1986,-3406,106] # scene 1
                                         )
-        self._setup_wind_visualization()
+        # self._setup_wind_visualization()
 
         self.curr_dir = str(Path(os.path.dirname(os.path.realpath(__file__))).resolve())
 
         # Create the vehicle 1
         config_multirotor1 = MultirotorConfig()
         config_multirotor1.backends = [NonlinearController(
-            # trajectory_file=self.curr_dir + "/trajectories/baf_slow_x.csv", # path following
-            # trajectory_file=self.curr_dir + "/trajectories/baf_very_fast_x.csv", # path following
-            # trajectory_file=self.curr_dir + "/trajectories/fast_xyz_ellipse.csv", # path following
-            # trajectory_file=self.curr_dir + "/trajectories/pitch_relay_90_deg_1.csv", # path following
-            # trajectory_file=self.curr_dir + "/trajectories/my_custom_ellipse.csv", # path following
+            trajectory_file=self.curr_dir + "/trajectories/upperhills_rev.csv", # path following
 
-            results_file=self.curr_dir + "/results/single_statistics_wind.npz",
+            results_file=self.curr_dir + "/results/single_statistics.npz",
             Ki=[0.5, 0.5, 0.5],
             Kr=[2.0, 2.0, 2.0],
             wind_manager = self.wind_manager
@@ -108,7 +104,7 @@ class PegasusApp:
             vehicle_id=0,
             # [2.3, -1.5, 0.07],
             # [2.3,-1.5,90.0], # hover-in-the-wind test
-            init_pos=[x - self.wind_manager.wind_r, y - self.wind_manager.wind_r, z - self.wind_manager.wind_r], # hover-in-the-wind test, close to buildings
+            init_pos=[1866.9, -3253.25, 382.82], # hover-in-the-wind test, close to buildings
             init_orientation=Rotation.from_euler("XYZ", [0.0, 0.0, 0.0], degrees=True).as_quat(),
             # init_orientation=[-0.673500266801882, 0.010104358209397367, 0.009208023560099556, 0.7390605556144141],
             config=config_multirotor1,
@@ -285,7 +281,7 @@ class PegasusApp:
         
         while simulation_app.is_running():
             self.world.step(render=True)
-            self._update_wind_visualization(self.world.current_time)
+            # self._update_wind_visualization(self.world.current_time)
 
             # drone_pos = self.drone.state.position
             # set_camera_view(eye=drone_pos + camera_offset, target=drone_pos + target_offset)
