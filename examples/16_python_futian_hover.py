@@ -62,12 +62,6 @@ class PegasusApp:
         self.world = self.pg.world
 
         # Futian environment
-        # self.pg.load_environment("/hdd/usd/Futian/bijiashan_park.usd")
-        # self.pg.load_environment("/hdd/usd/Futian/futian_buildings.usd")
-        # self.pg.load_environment("/hdd/usd/Futian/futian_highspeedstation.usd")
-        # self.pg.load_environment("/hdd/usd/Futian/futian_terrain_lianhuashan.usd")
-        # self.pg.load_environment("/hdd/usd/Futian/lianhuashan_landingplatform.usd")
-        # self.pg.load_environment("/hdd/usd/Futian/upperhills.usd")
         add_reference_to_stage(usd_path="/hdd/usd/Futian/upperhills.usd", prim_path="/World/upperhills")
         add_reference_to_stage(usd_path="/hdd/usd/Futian/lianhuashan_landingplatform.usd", prim_path="/World/lianhuashan_landingplatform")
         add_reference_to_stage(usd_path="/hdd/usd/Futian/futian_terrain_lianhuashan.usd", prim_path="/World/futian_terrain_lianhuashan")
@@ -103,7 +97,6 @@ class PegasusApp:
             vehicle_id=0,
             init_pos=[x - self.wind_manager.wind_r/2.0, y - self.wind_manager.wind_r, z - self.wind_manager.wind_r/2.0], # hover-in-the-wind test, close to buildings
             init_orientation=Rotation.from_euler("XYZ", [0.0, 0.0, 90.0], degrees=True).as_quat(),
-            # init_orientation=[-0.673500266801882, 0.010104358209397367, 0.009208023560099556, 0.7390605556144141],
             config=config_multirotor1,
         )
 
@@ -203,23 +196,6 @@ class PegasusApp:
 
         self.wind_vis_instancer.GetPrototypesRel().AddTarget(prototype_path)
 
-        # 2. Define the Grid around the drone's spawn point [2.3, -1.5, 0.07]
-        # Grid covers X:[0 to 5], Y:[-4 to 1], Z:[0.2 to 3.0]
-        x, y, z = np.meshgrid(
-            np.linspace(0.0, 5.0, 8), 
-            np.linspace(-4.0, 1.0, 8), 
-            np.linspace(0.0, 5.0, 5)
-        )
-        # positions = np.stack([x, y, z], axis=-1).reshape(-1, 3)
-
-        # 3. Create simulated wind vectors (e.g., a swirling wind field)
-        # You can replace this with your actual wind model or uniform wind: v = [0.5, 0.5, 0]
-        # vectors = np.stack([
-        #     np.sin(positions[:, 1]),   # Wind X
-        #     np.cos(positions[:, 0]),   # Wind Y
-        #     np.full(len(positions), 0.1) # Wind Z (slight updraft)
-        # ], axis=-1)
-
         positions, vectors = self.wind_manager.get_visualization_data(t=0.0)
 
         # 4. Process vectors into Transforms
@@ -233,21 +209,13 @@ class PegasusApp:
             scales.append(Gf.Vec3f(1.0, 1.0, float(mag*2.0))) # Scale arrow length by wind speed
             orientations.append(self._vector_to_quat(v))
             # Optional: Color gradient (blue to red based on magnitude)
-            colors.append(Gf.Vec3f(float(mag), 0.2, float(1.0 - mag)))
-            # colors.append(Gf.Vec4f(float(mag), 0.2, float(1.0 - mag), 0.1))
+            # colors.append(Gf.Vec3f(float(mag), 0.2, float(1.0 - mag)))
 
         # 5. Apply to USD
         self.wind_vis_instancer.GetPositionsAttr().Set(Vt.Vec3fArray(positions.tolist()))
         self.wind_vis_instancer.GetOrientationsAttr().Set(Vt.QuathArray(orientations))
         self.wind_vis_instancer.GetScalesAttr().Set(Vt.Vec3fArray(scales))
         self.wind_vis_instancer.GetProtoIndicesAttr().Set(Vt.IntArray(proto_indices))
-        # Create a displayColor Primvar and set it to 'vertex' interpolation (one color per instance)
-        # color_primvar = UsdGeom.PrimvarsAPI(self.wind_vis_instancer).CreatePrimvar(
-        #     "displayColor", 
-        #     Sdf.ValueTypeNames.Color3fArray, 
-        #     UsdGeom.Tokens.vertex
-        # )
-        # color_primvar.Set(Vt.Vec3fArray(colors))
 
     def _update_wind_visualization(self, t):
         """Updates the wind arrows' direction, scale, and color for a given time t"""
@@ -263,15 +231,11 @@ class PegasusApp:
             mag = np.linalg.norm(v)
             scales.append(Gf.Vec3f(1.0, 1.0, float(mag * 2.0)))
             orientations.append(self._vector_to_quat(v))
-            colors.append(Gf.Vec3f(float(mag), 0.2, float(1.0 - mag)))
+            # colors.append(Gf.Vec3f(float(mag), 0.2, float(1.0 - mag)))
 
         # Update the USD Attributes directly (Notice we don't need to update positions or proto_indices!)
         self.wind_vis_instancer.GetOrientationsAttr().Set(Vt.QuathArray(orientations))
         self.wind_vis_instancer.GetScalesAttr().Set(Vt.Vec3fArray(scales))
-
-        # Retrieve the existing color Primvar and update its array
-        color_primvar = UsdGeom.PrimvarsAPI(self.wind_vis_instancer).GetPrimvar("displayColor")
-        # color_primvar.Set(Vt.Vec3fArray(colors))
 
     def run(self):
         self.timeline.play()
@@ -279,9 +243,6 @@ class PegasusApp:
         while simulation_app.is_running():
             self.world.step(render=True)
             self._update_wind_visualization(self.world.current_time)
-
-            # drone_pos = self.drone.state.position
-            # set_camera_view(eye=drone_pos + camera_offset, target=drone_pos + target_offset)
 
         carb.log_warn("PegasusApp Simulation App is closing.")
         self.timeline.stop()
